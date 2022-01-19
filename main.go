@@ -22,6 +22,32 @@ func addReminderToAllEvents(calendar *ics.Calendar) {
 	}
 }
 
+func hasExistingAlarmsOnEvents(calendar *ics.Calendar) bool {
+	for _, v := range calendar.Events() {
+		if len(v.Alarms()) != 0 {
+			return true
+		}
+	}
+
+	return false
+}
+
+func userWantsToAddAdditionalAlarms() bool {
+	var input string
+	for {
+		fmt.Println("Found existing alarms, do you want to add additional ones? (y/n):")
+		fmt.Scanln(&input)
+
+		if input == "y" {
+			return true
+		}
+
+		if input == "n" {
+			return false
+		}
+	}
+}
+
 func main() {
 	var filename string
 	flag.StringVar(&filename, "f", "", "The ICS file to add alarms to.")
@@ -48,9 +74,18 @@ func main() {
 		return
 	}
 
+	if hasExistingAlarmsOnEvents(calendar) {
+		if !userWantsToAddAdditionalAlarms() {
+			fmt.Println("Aborting program without adding events...")
+			return
+		}
+	}
+
 	addReminderToAllEvents(calendar)
 
 	newfile, _ := os.Create(fmt.Sprintf("%v-with-notifications.ics", fileNameWithoutExtension(file.Name())))
 	newfile.WriteString(calendar.Serialize())
 	newfile.Close()
+
+	fmt.Printf("Added alarms to your events, you can find the new ics file here: %v\n", newfile.Name())
 }
